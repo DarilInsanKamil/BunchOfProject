@@ -4,20 +4,6 @@ import { PerfectDayService } from "./perfect-days.service";
 import { authMacro } from "@/lib/middleware";
 
 export const perfectdays = new Elysia({ prefix: "/perfectdays" })
-    .post(
-        "/upload",
-        async ({ body }) => {
-            const response = await PerfectDayService.upload(body);
-            return status(201, response);
-        },
-        {
-            body: PerfectDaysModel.UploadPayload,
-            detail: {
-                tags: ["Perfect Days"],
-                summary: "POST",
-            },
-        },
-    )
     .get(
         "/",
         async () => {
@@ -47,6 +33,22 @@ export const perfectdays = new Elysia({ prefix: "/perfectdays" })
         },
     )
     .use(authMacro)
+    .post(
+        "/upload",
+        async ({ body, user }) => {
+            const userId = user.id;
+            const response = await PerfectDayService.upload(body, userId);
+            return status(201, response);
+        },
+        {
+            body: PerfectDaysModel.UploadPayload,
+            isAuth: true,
+            detail: {
+                tags: ["Perfect Days"],
+                summary: "POST",
+            },
+        },
+    )
     .patch(
         "/:id/edit",
         async ({ params, body, user }) => {

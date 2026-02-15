@@ -5,7 +5,10 @@ import { PerfectDaysModel } from "./perfect-days.model";
 import { unlink } from "node:fs/promises";
 
 export abstract class PerfectDayService {
-    static async upload(payload: PerfectDaysModel.UploadPayload) {
+    static async upload(
+        payload: PerfectDaysModel.UploadPayload,
+        userId: string,
+    ) {
         const { image_url, user_id } = payload;
 
         if (!image_url) {
@@ -24,7 +27,7 @@ export abstract class PerfectDayService {
             title: payload.title,
             deskripsi: payload.deskripsi,
             archive: payload.archive === "false",
-            userId: payload.user_id,
+            userId,
             image_url: coverUrl,
             location: payload.location,
         };
