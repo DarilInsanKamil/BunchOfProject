@@ -6,8 +6,8 @@ import { authMacro } from "./lib/middleware";
 const app = new Elysia()
     .use(openapi())
     .use(authMacro)
-    .get("/", () => "Hello Elysia")
     .use(perfectdays)
+    .get("/", () => "Hello Elysia")
     .listen({
         hostname: "0.0.0.0",
         port: 3000,
