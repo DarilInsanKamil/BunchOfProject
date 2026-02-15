@@ -1,85 +1,170 @@
-Phase 1: Konfigurasi Core (Fixing Issues)
+# Perfect Days Module — Implementation Phases
+
+Dokumen ini menjelaskan tahapan implementasi fitur CRUD dengan fokus pada stabilitas database, validasi data, keamanan ownership, dan integrasi endpoint API.
+
+---
+
+## Phase 1 — Konfigurasi Core (Fixing Issues)
+
 Sebelum masuk ke fitur CRUD, pastikan pondasi database sudah benar agar relasi User bisa terbaca.
 
-[✔️] Perbaiki src/db/index.ts
+### ✅ Perbaiki `src/db/index.ts`
 
-Masalah: Drizzle instance saat ini tidak memuat schema, menyebabkan error pada better-auth atau saat melakukan relational query.
+**Masalah**
 
-Tugas: Import schema dari file schema.ts dan masukkan ke dalam fungsi drizzle({ client, schema }).
+Instance Drizzle saat ini tidak memuat schema, menyebabkan error pada better-auth atau saat melakukan relational query.
 
-Phase 2: Validasi Data (Model)
-Menyiapkan "kontrak" data untuk Request dan Response.
+**Tugas**
 
-[✔️] Update src/modules/perfect-days/model.ts
+- Import schema dari file `schema.ts`
+- Masukkan schema ke dalam konfigurasi drizzle:
 
-Buat Schema UpdatePayload:
+```ts
+drizzle({ client, schema });
+```
 
-Tiru UploadPayload, namun buat semua field (title, deskripsi, location, image_url) menjadi Optional. Ini agar user bisa mengedit salah satu bagian saja (misal: hanya ganti caption).
+---
 
-Buat Schema PostIdParams:
+## Phase 2 — Validasi Data (Model)
 
-Buat object validasi sederhana { id: t.String() } untuk memvalidasi parameter URL (misal: /perfectdays/:id).
+Menyiapkan “kontrak” data untuk Request dan Response.
 
-Phase 3: Logika Bisnis (Service)
-Ini adalah bagian terpenting. Logika keamanan (ownership) diterapkan di sini.
+### ✅ Update `src/modules/perfect-days/model.ts`
 
-[ ] Update src/modules/perfect-days/service.ts
+#### 1. Schema `UpdatePayload`
 
-Buat Method getPostById(id):
+- Tiru `UploadPayload`
+- Semua field dibuat **optional**:
+    - title
+    - description
+    - location
+    - image_url
 
-Query ke database untuk mencari post berdasarkan id.
+Tujuan: user bisa mengedit sebagian data saja.
 
-Return detail post beserta info user (gunakan innerJoin atau with relation).
+---
 
-Error Handling: Jika tidak ketemu, throw error 404.
+#### 2. Schema `PostIdParams`
 
-Buat Method updatePost(id, userId, payload):
+Validasi parameter URL:
 
-Cek Keberadaan: Cari post berdasarkan id. Jika tidak ada -> 404.
+```ts
+{
+    id: t.String();
+}
+```
 
-Cek Kepemilikan (PENTING): Pastikan post.userId === userId. Jika tidak sama -> Throw error 403 (Forbidden).
+Digunakan untuk endpoint seperti:
 
-Handle Gambar (Jika ada upload baru):
+```
+/perfectdays/:id
+```
 
-Simpan file gambar baru.
+---
 
-Update path gambar di variabel data update.
+## Phase 3 — Logika Bisnis (Service)
 
-(Opsional) Hapus file gambar lama dari storage untuk hemat ruang.
+Bagian terpenting — keamanan ownership diterapkan di sini.
 
-Update DB: Jalankan query update hanya pada kolom yang dikirim user.
+### ✅ Update `src/modules/perfect-days/service.ts`
 
-Buat Method deletePost(id, userId):
+---
 
-Cek Keberadaan & Kepemilikan: Sama seperti logic update (Cek ID lalu Cek userId). Jika bukan pemilik -> 403.
+### Method: `getPostById(id)`
 
-Hapus Data: Jalankan query delete post.
+**Flow**
 
-(Opsional) Hapus File: Hapus file gambar fisik dari folder public/posts agar server tidak penuh sampah (garbage files).
+- Query database berdasarkan id
+- Sertakan info user (innerJoin / relation)
+- Jika tidak ditemukan → throw error **404**
 
-Phase 4: API Endpoint (Controller)
-Menghubungkan URL dengan logic di Service.
+---
 
-[ ] Update src/modules/perfect-days/index.ts
+### Method: `updatePost(id, userId, payload)`
 
-Endpoint GET /:id:
+**Flow**
 
-Gunakan validasi params: PerfectDaysModel.PostIdParams.
+1. **Cek keberadaan post**
+    - Jika tidak ada → 404
 
-Panggil service getPostById.
+2. **Cek kepemilikan**
+    - Jika `post.userId !== userId` → throw **403**
 
-Endpoint PUT /:id (Edit):
+3. **Handle gambar (opsional)**
+    - Simpan gambar baru
+    - Update path gambar
+    - Hapus gambar lama jika perlu
 
-Pastikan route ini diproteksi oleh authMacro (harus login).
+4. **Update database**
+    - Update hanya field yang dikirim user
 
-Ambil user.id dari session user yang login.
+---
 
-Panggil service updatePost(params.id, user.id, body).
+### Method: `deletePost(id, userId)`
 
-Endpoint DELETE /:id (Hapus):
+**Flow**
 
-Pastikan route ini diproteksi oleh authMacro.
+1. Cek keberadaan + kepemilikan
+    - Jika bukan pemilik → 403
 
-Ambil user.id dari session user yang login.
+2. Hapus data post dari database
 
-Panggil service deletePost(params.id, user.id).
+3. (Opsional) Hapus file gambar dari storage
+
+---
+
+## Phase 4 — API Endpoint (Controller)
+
+Menghubungkan route dengan logic service.
+
+### ✅ Update `src/modules/perfect-days/index.ts`
+
+---
+
+### Endpoint: `GET /:id`
+
+- Validasi params dengan `PostIdParams`
+- Panggil `getPostById`
+
+---
+
+### Endpoint: `PUT /:id`
+
+- Wajib login (authMacro)
+- Ambil `user.id` dari session
+- Panggil:
+
+```ts
+updatePost(params.id, user.id, body);
+```
+
+---
+
+### Endpoint: `DELETE /:id`
+
+- Wajib login (authMacro)
+- Ambil `user.id`
+- Panggil:
+
+```ts
+deletePost(params.id, user.id);
+```
+
+---
+
+## Summary Flow
+
+```
+Request → Validation → Ownership Check → DB Action → Response
+```
+
+Tujuan utama:
+
+- Data aman
+- User hanya bisa mengedit miliknya
+- Storage tetap bersih
+- API konsisten
+
+---
+
+✅ Siap untuk implementasi CRUD yang aman dan scalable.
