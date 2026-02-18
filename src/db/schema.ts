@@ -183,6 +183,66 @@ export const userCommentsRelations = relations(userComments, ({ one }) => ({
     user: one(user, { fields: [userComments.userId], references: [user.id] }),
 }));
 
+//BIOSKOP
+
+export const studio = pgTable("studio", {
+    id: uuid("id")
+        .primaryKey()
+        .default(sql`uuidv7()`),
+    namaStudio: text("nama_studio").notNull(),
+    kapasitas: integer("kapasitas").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+        .defaultNow()
+        .$onUpdate(() => new Date()),
+});
+export const movie = pgTable("movie", {
+    id: uuid("id")
+        .primaryKey()
+        .default(sql`uuidv7()`),
+    namaFilm: text("nama_film").notNull(),
+    durasi: integer("durasi").notNull(),
+    genre: varchar({ length: 150 }).notNull(),
+    sinopsis: text("sinopsis").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+        .defaultNow()
+        .$onUpdate(() => new Date()),
+});
+
+export const showtime = pgTable("showtime", {
+    id: uuid("id")
+        .primaryKey()
+        .default(sql`uuidv7()`),
+    studioId: uuid("studio_id")
+        .notNull()
+        .references(() => studio.id, { onDelete: "cascade" }),
+    movieId: uuid("movie_id")
+        .notNull()
+        .references(() => movie.id, { onDelete: "cascade" }),
+    waktuTayang: text("waktu_tayang").notNull(),
+    harga: integer("harga").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+        .defaultNow()
+        .$onUpdate(() => new Date()),
+});
+
+export const booking = pgTable("booking", {
+    id: uuid("id")
+        .primaryKey()
+        .default(sql`uuidv7()`),
+    showttimeId: uuid("showtime_id")
+        .notNull()
+        .references(() => showtime.id, { onDelete: "cascade" }),
+    namaPemesan: text("nama_pemesan").notNull(),
+    nomorKursi: varchar({ length: 10 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+        .defaultNow()
+        .$onUpdate(() => new Date()),
+});
+
 export const schema = {
     user,
     account,
@@ -191,4 +251,8 @@ export const schema = {
     session,
     verification,
     posts,
+    studio,
+    movie,
+    booking,
+    showtime,
 };

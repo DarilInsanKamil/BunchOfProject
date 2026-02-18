@@ -2,9 +2,11 @@ import { Elysia } from "elysia";
 import { perfectdays } from "./modules/perfect-days";
 import openapi from "@elysiajs/openapi";
 import { authMacro } from "./lib/middleware";
+import { bioskop } from "./modules/tiket-bioskop";
 
 const app = new Elysia()
     .use(openapi())
+    .use(bioskop)
     .use(authMacro)
     .use(perfectdays)
     .get("/", () => "Hello Elysia")
