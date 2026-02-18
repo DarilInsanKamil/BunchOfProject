@@ -1,8 +1,9 @@
 import { db } from "../../db";
-import { posts, user } from "../../db/schema";
-import { and, eq, type InferInsertModel } from "drizzle-orm";
+import { posts, user, userComments, userLikes } from "../../db/schema";
+import { and, eq, sql, type InferInsertModel } from "drizzle-orm";
 import { PerfectDaysModel } from "./perfect-days.model";
 import { unlink } from "node:fs/promises";
+import { error } from "node:console";
 
 export abstract class PerfectDayService {
     static async upload(
@@ -26,7 +27,7 @@ export abstract class PerfectDayService {
         const data: NewPosts = {
             title: payload.title,
             deskripsi: payload.deskripsi,
-            archive: payload.archive === "false",
+            archive: payload.archive === "true",
             userId,
             image_url: coverUrl,
             location: payload.location,
@@ -51,15 +52,23 @@ export abstract class PerfectDayService {
                 location: posts.location,
                 archive: posts.archive,
                 createdAt: posts.createdAt,
-
                 user: {
                     id: user.id,
                     name: user.name,
                     email: user.email,
                 },
+                likesCount:
+                    sql<number>`(SELECT count(*) FROM user_likes WHERE user_likes.post_id = ${posts.id})`.mapWith(
+                        Number,
+                    ),
+                commentsCount:
+                    sql<number>`(SELECT count(*) FROM user_comment WHERE user_comment.post_id = ${posts.id})`.mapWith(
+                        Number,
+                    ),
             })
             .from(posts)
             .innerJoin(user, eq(posts.userId, user.id));
+
         return resultPosts;
     }
 
@@ -173,5 +182,72 @@ export abstract class PerfectDayService {
 
         await db.delete(posts).where(eq(posts.id, postId));
         return true;
+    }
+
+    static async likePost(userId: string, postId: string) {
+        const post = await this.getPostById(postId);
+        if (!post) throw new Error("Post tidak ditemukan");
+
+        const existing = await db.query.userLikes.findFirst({
+            where: (t, { eq, and }) =>
+                and(eq(t.userId, userId), eq(t.postId, postId)),
+        });
+
+        if (existing) {
+            await db
+                .delete(userLikes)
+                .where(
+                    and(
+                        eq(userLikes.userId, userId),
+                        eq(userLikes.postId, postId),
+                    ),
+                );
+
+            return { liked: false };
+        }
+
+        const payload = {
+            userId,
+            postId,
+        };
+
+        await db.insert(userLikes).values({ userId, postId });
+        return { liked: true };
+    }
+
+    static async commentPost(userId: string, postId: string, comment: string) {
+        const post = await this.getPostById(postId);
+        if (!post) throw new Error("Post tidak ditemukan");
+
+        const payload = {
+            userId,
+            postId,
+            comment,
+        };
+        const result = await db
+            .insert(userComments)
+            .values(payload)
+            .returning({ id: userComments.id });
+        if (result.length === 0) {
+            throw error("Gagal like postingan");
+        }
+        return result[0].id;
+    }
+
+    static async getCommentByPostId(postId: string) {
+        const post = await this.getPostById(postId);
+        if (!post) throw new Error("Postingan tidak ditemukan");
+
+        const result = await db.query.userComments.findMany({
+            where: eq(userComments.postId, postId),
+            with: {
+                user: {
+                    columns: {
+                        name: true,
+                    },
+                },
+            },
+        });
+        return result;
     }
 }

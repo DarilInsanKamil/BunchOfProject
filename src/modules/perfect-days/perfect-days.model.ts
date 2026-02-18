@@ -21,6 +21,8 @@ export namespace PerfectDaysModel {
         title: t.String(),
         deskripsi: t.String(),
         nama_user: t.Optional(t.String()),
+        like: t.String(),
+        comment: t.String(),
         image_url: t.File({
             maxSize: "6m",
         }),
@@ -39,6 +41,17 @@ export namespace PerfectDaysModel {
 
     export const UpdateArchivePost = t.Object({ archive: t.Boolean() });
     export type UpdateArchivePost = typeof UpdateArchivePost.static;
+
+    export const UserLikePost = t.Object({
+        postId: t.String(),
+    });
+    export type UserLikePost = typeof UserLikePost.static;
+
+    export const UserCommentPost = t.Object({
+        postId: t.String(),
+        comment: t.String({ minLength: 1 }),
+    });
+    export type UserCommentPost = typeof UserCommentPost.static;
 
     export const ErrorResponse = t.Object({
         message: t.String(),

@@ -28,11 +28,66 @@ export const perfectdays = new Elysia({ prefix: "/perfectdays" })
             params: PerfectDaysModel.ParamsId,
             detail: {
                 tags: ["Perfect Days"],
-                summary: "GET",
+                summary: "GET BY ID",
+            },
+        },
+    )
+    .get(
+        "/:id/comment",
+        async ({ params }) => {
+            const postId = params.id;
+            const response = await PerfectDayService.getCommentByPostId(postId);
+            return response;
+        },
+        {
+            params: PerfectDaysModel.ParamsId,
+            detail: {
+                tags: ["Perfect Days"],
+                summary: "GET COMMENT",
             },
         },
     )
     .use(authMacro)
+    .post(
+        "/like",
+        async ({ body, user }) => {
+            const userId = user.id;
+            const response = await PerfectDayService.likePost(
+                userId,
+                body.postId,
+            );
+            return status(201, response);
+        },
+        {
+            body: PerfectDaysModel.UserLikePost,
+            isAuth: true,
+            detail: {
+                tags: ["Perfect Days"],
+                summary: "POST LIKE",
+            },
+        },
+    )
+    .post(
+        "/comment",
+        async ({ body, user }) => {
+            const userId = user.id;
+            const { postId, comment } = body;
+            const response = await PerfectDayService.commentPost(
+                userId,
+                postId,
+                comment,
+            );
+            return status(201, response);
+        },
+        {
+            body: PerfectDaysModel.UserCommentPost,
+            isAuth: true,
+            detail: {
+                tags: ["Perfect Days"],
+                summary: "POST COMMENT",
+            },
+        },
+    )
     .post(
         "/upload",
         async ({ body, user }) => {
