@@ -1,55 +1,8 @@
 import Elysia, { t } from "elysia";
 import { BioskopModel } from "./ticket-bioskop.model";
 import { BioskopService } from "./ticket-bioskop.service";
-import {
-    GoogleGenAI,
-    FunctionCallingConfigMode,
-    mcpToTool,
-} from "@google/genai";
-import { mcpClient } from "./mcp-client";
 
 export const bioskop = new Elysia({ prefix: "/bioskop" })
-    .post(
-        "/mcp",
-        async ({ body }) => {
-            const ai = new GoogleGenAI({
-                apiKey: process.env.GEMINI_API_KEY,
-            });
-            const response = await ai.models.generateContent({
-                model: "gemini-2.5-flash",
-                contents: [
-                    {
-                        role: "user",
-                        parts: [{ text: body.prompt }],
-                    },
-                ],
-                config: {
-                    tools: [mcpToTool(mcpClient)],
-                    toolConfig: {
-                        functionCallingConfig: {
-                            mode: FunctionCallingConfigMode.ANY,
-                        },
-                    },
-                },
-            });
-
-            if (response.functionCalls && response.functionCalls.length > 0) {
-                const functionCall = response.functionCalls[0]; // Assuming one function call
-                console.log(`Function to call: ${functionCall.name}`);
-                console.log(`Arguments: ${JSON.stringify(functionCall.args)}`);
-                // In a real app, you would call your actual function here:
-                // const result = await getCurrentTemperature(functionCall.args);
-            } else {
-                console.log("No function call found in the response.");
-                console.log(response.text);
-            }
-
-            return response.text;
-        },
-        {
-            body: t.Object({ prompt: t.String() }),
-        },
-    )
     .post(
         "/studio",
         async ({ body }) => {

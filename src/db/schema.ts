@@ -9,8 +9,9 @@ import {
     varchar,
     index,
     primaryKey,
+    AnyPgColumn,
 } from "drizzle-orm/pg-core";
-import * as p from "drizzle-orm/pg-core";
+// import * as p from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
     id: uuid("id")
@@ -98,10 +99,11 @@ export const posts = pgTable("posts", {
         .default(sql`uuidv7()`),
     title: varchar({ length: 255 }).notNull(),
     deskripsi: text().notNull(),
-    userId: uuid("user_id").references(() => user.id),
-    image_url: text().notNull(),
+    userId: uuid("user_id").references(() => user.id, { onDelete: "cascade" }),
     location: varchar({ length: 255 }),
     archive: boolean().default(false),
+    latitude: text(),
+    longitude: text(),
     createdAt: timestamp("created_at", { withTimezone: true })
         .defaultNow()
         .notNull(),
@@ -109,6 +111,16 @@ export const posts = pgTable("posts", {
         .defaultNow()
         .notNull()
         .$onUpdate(() => /* @__PURE__ */ new Date()),
+});
+
+export const postImages = pgTable("post_images", {
+    id: uuid("id")
+        .primaryKey()
+        .default(sql`uuidv7()`),
+    postId: uuid("post_id")
+        .notNull()
+        .references(() => posts.id, { onDelete: "cascade" }),
+    imageUrl: text("image_url").notNull(),
 });
 
 export const userLikes = pgTable(
@@ -135,6 +147,9 @@ export const userComments = pgTable("user_comment", {
     postId: uuid("post_id")
         .notNull()
         .references(() => posts.id, { onDelete: "cascade" }),
+    parentId: uuid("parent_id").references((): AnyPgColumn => userComments.id, {
+        onDelete: "cascade",
+    }),
     comment: text("comment").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
@@ -155,8 +170,16 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
         fields: [posts.userId],
         references: [user.id],
     }),
+    images: many(postImages),
     likes: many(userLikes),
     comments: many(userComments),
+}));
+
+export const postImagesRelations = relations(postImages, ({ one }) => ({
+    post: one(posts, {
+        fields: [postImages.postId],
+        references: [posts.id],
+    }),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -178,10 +201,27 @@ export const userLikesRelations = relations(userLikes, ({ one }) => ({
     user: one(user, { fields: [userLikes.userId], references: [user.id] }),
 }));
 
-export const userCommentsRelations = relations(userComments, ({ one }) => ({
-    post: one(posts, { fields: [userComments.postId], references: [posts.id] }),
-    user: one(user, { fields: [userComments.userId], references: [user.id] }),
-}));
+export const userCommentsRelations = relations(
+    userComments,
+    ({ one, many }) => ({
+        post: one(posts, {
+            fields: [userComments.postId],
+            references: [posts.id],
+        }),
+        parent: one(userComments, {
+            fields: [userComments.parentId],
+            references: [userComments.id],
+            relationName: "comment_replies",
+        }),
+        replies: many(userComments, {
+            relationName: "comment_replies",
+        }),
+        user: one(user, {
+            fields: [userComments.userId],
+            references: [user.id],
+        }),
+    }),
+);
 
 //BIOSKOP
 
@@ -251,8 +291,9 @@ export const schema = {
     session,
     verification,
     posts,
+    postImages,
     studio,
-    movie,
     booking,
+    movie,
     showtime,
 };

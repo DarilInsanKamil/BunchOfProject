@@ -47,7 +47,56 @@ export const perfectdays = new Elysia({ prefix: "/perfectdays" })
             },
         },
     )
+    .get(
+        "/location",
+        async ({ query }) => {
+            const response = await PerfectDayService.getPostByLocation(
+                query.location,
+            );
+            return response;
+        },
+        {
+            detail: {
+                tags: ["Perfect Days"],
+                summary: "GET Location",
+            },
+        },
+    )
     .use(authMacro)
+    .get(
+        "/archive/stats",
+        async ({ user }) => {
+            const userId = user.id;
+            const response = await PerfectDayService.getArchiveStats(userId);
+            return response;
+        },
+        {
+            isAuth: true,
+            detail: {
+                tags: ["Perfect Days"],
+                summary: "GET Year Stats",
+            },
+        },
+    )
+    .get(
+        "/archive/:year",
+        async ({ params, user }) => {
+            const year = params.year;
+            const userId = user.id;
+            const response = await PerfectDayService.getArchiveByYear(
+                year,
+                userId,
+            );
+            return response;
+        },
+        {
+            isAuth: true,
+            detail: {
+                tags: ["Perfect Days"],
+                summary: "GET Group Year",
+            },
+        },
+    )
     .post(
         "/like",
         async ({ body, user }) => {
@@ -71,11 +120,12 @@ export const perfectdays = new Elysia({ prefix: "/perfectdays" })
         "/comment",
         async ({ body, user }) => {
             const userId = user.id;
-            const { postId, comment } = body;
+            const { postId, comment, parentId } = body;
             const response = await PerfectDayService.commentPost(
                 userId,
                 postId,
                 comment,
+                parentId || null,
             );
             return status(201, response);
         },

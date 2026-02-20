@@ -4,11 +4,13 @@ export namespace PerfectDaysModel {
         title: t.String({ minLength: 1 }),
         deskripsi: t.String(),
         user_id: t.Optional(t.String()),
-        image_url: t.File({
+        image_url: t.Files({
             maxSize: "6m",
-            type: "image/*",
+            type: ["image/jpeg", "image/png", "image/webp"],
         }),
         location: t.Optional(t.String()),
+        latitude: t.Optional(t.String()),
+        longitude: t.Optional(t.String()),
         archive: t.Optional(t.String()),
     });
     export type UploadPayload = typeof UploadPayload.static;
@@ -21,6 +23,8 @@ export namespace PerfectDaysModel {
         title: t.String(),
         deskripsi: t.String(),
         nama_user: t.Optional(t.String()),
+        latitude: t.Optional(t.String()),
+        longitude: t.Optional(t.String()),
         like: t.String(),
         comment: t.String(),
         image_url: t.File({
@@ -49,6 +53,7 @@ export namespace PerfectDaysModel {
 
     export const UserCommentPost = t.Object({
         postId: t.String(),
+        parentId: t.Optional(t.String()),
         comment: t.String({ minLength: 1 }),
     });
     export type UserCommentPost = typeof UserCommentPost.static;
